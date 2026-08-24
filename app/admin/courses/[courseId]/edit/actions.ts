@@ -1,0 +1,40 @@
+"use server"
+
+import { requireAdmin } from "@/app/data/admin/require-admin"
+import prisma from "@/lib/prisma"
+import { ApiResponse } from "@/lib/type"
+import { courseSchema, CourseSchemaType } from "@/lib/zod-schema"
+
+export async function editCourse(
+  data: CourseSchemaType,
+  courseId: string
+): Promise<ApiResponse> {
+  const user = await requireAdmin()
+
+  try {
+    const result = courseSchema.safeParse(data)
+    if (!result.success) {
+      return {
+        status: "error",
+        message: result.error.issues[0].message,
+      }
+    }
+
+    await prisma.course.update({
+      where: { id: courseId, userId: user.user.id },
+      data: {
+        ...result.data,
+      },
+    })
+
+    return {
+      status: "success",
+      message: "Course updated successfully",
+    }
+  } catch (error) {
+    return {
+      status: "error",
+      message: `${error}`,
+    }
+  }
+}
